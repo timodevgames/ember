@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+@theme {
+  --color-night-950: #0c0a14;
+  --color-night-900: #13101d;
+  --color-night-850: #181424;
+  --color-night-800: #1e192c;
+  --color-night-700: #2a2440;
+  --color-night-600: #3a3256;
+  --color-ember-300: #ffc08a;
+  --color-ember-400: #ffa05c;
+  --color-ember-500: #ff8a3d;
+  --color-ember-600: #e9702a;
+  --color-gold-400: #ffd36b;
+  --color-hp-400: #ff6b81;
+  --color-hp-500: #f04e68;
+  --color-xp-400: #a78bfa;
+  --color-protein-400: #34d399;
+  --font-sans: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+html {
+  color-scheme: dark;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: var(--color-night-950);
+  color: var(--color-zinc-100);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+button {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+input,
+select,
+textarea {
+  font-size: 16px; /* stops iOS from zooming into focused inputs */
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* In the components layer so utility classes (bg-*, border-*) can override it. */
+@layer components {
+  .card {
+    background: var(--color-night-850);
+    border: 1px solid var(--color-night-700);
+    border-radius: 1.25rem;
+  }
+}
+
+/* --- feedback animations --- */
+@keyframes float-up {
+  0% { opacity: 0; transform: translate(-50%, 0) scale(0.8); }
+  15% { opacity: 1; transform: translate(-50%, -8px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -42px) scale(1); }
+}
+.animate-float-up {
+  animation: float-up 1.2s ease-out forwards;
+}
+
+@keyframes spark {
+  0% { opacity: 1; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.3); }
+}
+.spark {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  animation: spark 0.7s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+.animate-pop {
+  animation: pop 0.35s ease-out;
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+.animate-rise-in {
+  animation: rise-in 0.28s ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+@keyframes zzz {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translate(14px, -26px) scale(1.1); }
+}
+.animate-zzz {
+  animation: zzz 2.6s ease-out infinite;
+  transform-box: fill-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
