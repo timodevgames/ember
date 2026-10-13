@@ -13,7 +13,9 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt' + our own banner: an update never reloads the app while you're typing.
+      registerType: 'prompt',
+      injectRegister: false,
       includeAssets: ['icons/*.png', 'icons/*.svg'],
       manifest: {
         name: 'Ember — Habits & Food',

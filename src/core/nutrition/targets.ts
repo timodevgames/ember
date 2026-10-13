@@ -87,7 +87,10 @@ export interface TrendAdvice {
 
 /** Needs ≥ 2 weeks of data. Lean bulk sweet spot: +0.1 … +0.5 kg per week. */
 export function trendAdvice(points: WeightPoint[], goal: Goal): TrendAdvice | null {
-  const t = weightTrend(points);
+  if (points.length === 0) return null;
+  // Only the last 4 weeks matter — a bulk from months ago says nothing about today.
+  const lastDay = points.reduce((m, p) => (p.day > m ? p.day : m), points[0].day);
+  const t = weightTrend(points).filter((p) => p.day >= addDays(lastDay, -27));
   if (t.length < 4) return null;
   const first = t[0];
   const last = t[t.length - 1];

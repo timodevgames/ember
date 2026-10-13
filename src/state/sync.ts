@@ -104,7 +104,8 @@ async function collect(lastPushAt: number, everything: boolean): Promise<{ chang
   const changes: Change[] = [];
   let maxUpdatedAt = lastPushAt;
   for (const t of SYNCED_TABLES) {
-    const rows = (await db.table(t).where('updatedAt').above(lastPushAt).toArray()) as SyncFields[];
+    // ≥, not >: a row saved in the same millisecond as the last push must not be skipped (the server ignores ties).
+    const rows = (await db.table(t).where('updatedAt').aboveOrEqual(lastPushAt).toArray()) as SyncFields[];
     for (const r of rows) {
       if (!everything && r.deviceId !== me) continue; // pulled from elsewhere — don't echo it back
       changes.push({ table: t, record: r as Change['record'] });
@@ -195,6 +196,13 @@ export async function connect(cfg: SyncConfig, replaceLocal: boolean): Promise<v
   await setMeta(K.cursor, 0);
   await setMeta(K.lastPush, 0);
   await syncNow();
+}
+
+/** After a backup import: push everything again on the next sync (the server keeps whatever is newer). */
+export async function resyncEverything(): Promise<void> {
+  await setMeta(K.lastPush, 0);
+  await setMeta(K.cursor, 0);
+  void syncNow();
 }
 
 export async function disconnect(): Promise<void> {

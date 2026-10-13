@@ -10,6 +10,7 @@ import { isSandbox, sandboxOffsetDays, setSandbox, setSandboxOffsetDays } from '
 import PageHeader from '../../components/PageHeader';
 import PetView from '../pet/PetView';
 import SyncSection from './SyncSection';
+import { resyncEverything } from '../../state/sync';
 import IntegrationsSection from './IntegrationsSection';
 
 export default function SettingsPage() {
@@ -108,6 +109,7 @@ export default function SettingsPage() {
             if (!f) return;
             try {
               const n = await importBackup(JSON.parse(await f.text()) as Backup);
+              if (n > 0) await resyncEverything();
               setMsg(`Imported ${n} records.`);
             } catch (err) {
               setMsg(`Import failed: ${(err as Error).message}`);

@@ -7,7 +7,7 @@
  *   (pm2 passes --env-file=.env)
  */
 import { createServer } from 'node:http';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Store } from './store';
@@ -63,6 +63,26 @@ function runOnce(minGapMs = 0): Promise<unknown> {
 }
 
 const handler = createHandler(store, { token: TOKEN, version: __VERSION__, startedAt: Date.now(), runIntegrations: () => runOnce(10_000) });
+// Daily backup of the database: data/backups/ember-YYYY-MM-DD.sqlite, the newest 14 are kept.
+const BACKUP_DIR = join(DATA_DIR, 'backups');
+function backupDaily(): void {
+  try {
+    mkdirSync(BACKUP_DIR, { recursive: true });
+    const name = `ember-${new Date().toISOString().slice(0, 10)}.sqlite`;
+    const existing = readdirSync(BACKUP_DIR).filter((f) => /^ember-\d{4}-\d{2}-\d{2}\.sqlite$/.test(f)).sort();
+    if (!existing.includes(name)) {
+      store.backupTo(join(BACKUP_DIR, name));
+      console.log(`${new Date().toISOString()} backup ${name}`);
+      existing.push(name);
+    }
+    for (const old of existing.slice(0, Math.max(0, existing.length - 14))) rmSync(join(BACKUP_DIR, old));
+  } catch (e) {
+    console.log(`${new Date().toISOString()} backup FAILED ${(e as Error).message}`);
+  }
+}
+setTimeout(backupDaily, 60_000);
+setInterval(backupDaily, 6 * 3600_000);
+
 setTimeout(() => runOnce(), 15_000);
 setInterval(() => runOnce(), 30 * 60_000);
 

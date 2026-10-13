@@ -62,7 +62,7 @@ export function createHandler(store: Store, cfg: AppConfig) {
         const hit = store.offGet(code);
         const fresh = hit && Date.now() - hit.fetchedAt < (hit.status === 200 ? 30 * DAY : DAY);
         if (hit && fresh) return send(res, 200, { ok: true, cached: true, status: hit.status, product: JSON.parse(hit.body) });
-        const r = await fetchFn(`https://world.openfoodfacts.org/api/v3/product/${code}?fields=${OFF_FIELDS}`, { headers: { 'user-agent': OFF_UA } });
+        const r = await fetchFn(`https://world.openfoodfacts.org/api/v3/product/${code}?fields=${OFF_FIELDS}`, { headers: { 'user-agent': OFF_UA }, signal: AbortSignal.timeout(10_000) });
         const text = await r.text();
         let json: unknown = null;
         try {

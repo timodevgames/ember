@@ -3,6 +3,7 @@ import type { Day } from '../../src/core/date';
 import type { GdStat, MusicCoachStat, ValorantRegion } from '../../src/core/integrations/types';
 import { logicalDayTz } from './days';
 
+// Every request has a timeout: a hung API must never block the runner (it runs one at a time).
 type Fetch = typeof fetch;
 const UA = 'Ember/0.1 (github.com/timodevgames/ember; personal habit tracker)';
 
@@ -43,7 +44,7 @@ export interface ValMatch {
 }
 
 async function henrik<T>(path: string, key: string, fetchFn: Fetch): Promise<T> {
-  const r = await fetchFn(`https://api.henrikdev.xyz${path}`, { headers: { authorization: key, 'user-agent': UA } });
+  const r = await fetchFn(`https://api.henrikdev.xyz${path}`, { headers: { authorization: key, 'user-agent': UA }, signal: AbortSignal.timeout(20_000) });
   const body = (await r.json().catch(() => null)) as { data?: T; errors?: { message?: string }[] } | null;
   if (!r.ok || !body?.data) throw new Error(`HenrikDev ${r.status}: ${body?.errors?.[0]?.message ?? 'no data'}`);
   return body.data;
@@ -79,7 +80,7 @@ export function valorantDays(matches: ValMatch[], tz: string, startHour: number)
 // --- Geometry Dash (GDBrowser, unofficial) ------------------------------------
 
 export async function fetchGdProfile(username: string, fetchFn: Fetch = fetch): Promise<GdStat> {
-  const r = await fetchFn(`https://gdbrowser.com/api/profile/${encodeURIComponent(username)}`, { headers: { 'user-agent': UA } });
+  const r = await fetchFn(`https://gdbrowser.com/api/profile/${encodeURIComponent(username)}`, { headers: { 'user-agent': UA }, signal: AbortSignal.timeout(20_000) });
   const p = (await r.json().catch(() => null)) as Record<string, unknown> | null;
   if (!r.ok || !p || p === null || typeof p.stars !== 'number') throw new Error(`GDBrowser ${r.status}: profile not found`);
   const sum = (o: unknown) => (o && typeof o === 'object' ? Object.values(o as Record<string, number>).reduce((a, v) => a + (Number(v) || 0), 0) : 0);

@@ -16,6 +16,7 @@ import AddFoodPage from './features/food/AddFoodPage';
 import CustomFoodEditor from './features/food/CustomFoodEditor';
 import RecipeEditor from './features/food/RecipeEditor';
 import GoalsPage from './features/food/GoalsPage';
+import UpdateBanner from './components/UpdateBanner';
 
 const TABS = [
   { to: '/', icon: '🏠', label: 'Today', end: true },
@@ -84,6 +85,7 @@ function Shell() {
         </div>
       </nav>
       <EventCenter />
+      <UpdateBanner />
     </div>
   );
 }

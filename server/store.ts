@@ -92,6 +92,11 @@ export class Store {
       .run(code, Date.now(), status, body);
   }
 
+  /** Consistent snapshot of the whole database (safe while the server is running). */
+  backupTo(file: string): void {
+    this.db.prepare('VACUUM INTO ?').run(file);
+  }
+
   stats(): Record<string, number> {
     const rows = this.db.prepare('SELECT tbl, COUNT(*) AS n FROM records GROUP BY tbl').all() as { tbl: string; n: number }[];
     return Object.fromEntries(rows.map((r) => [r.tbl, r.n]));

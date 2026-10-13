@@ -53,6 +53,12 @@ export function offToFood(p: OffProduct): OffFood | null {
   return { id: `off:${p.code}`, source: 'off', name, brand: brand?.trim() || undefined, barcode: p.code, per100, servings };
 }
 
+/** The caller's signal (if any) combined with a timeout, so a slow API never leaves the UI hanging. */
+function withTimeout(signal: AbortSignal | undefined, ms: number): AbortSignal {
+  const t = AbortSignal.timeout(ms);
+  return signal && typeof AbortSignal.any === 'function' ? AbortSignal.any([signal, t]) : (signal ?? t);
+}
+
 export type LookupResult = { status: 'found'; food: OffFood } | { status: 'incomplete'; name?: string } | { status: 'notFound' } | { status: 'error'; message: string };
 
 /**
@@ -62,20 +68,20 @@ export type LookupResult = { status: 'found'; food: OffFood } | { status: 'incom
 export async function lookupBarcode(code: string, signal?: AbortSignal, proxy?: { url: string; token: string } | null): Promise<LookupResult> {
   if (proxy) {
     try {
-      const r = await fetch(`${proxy.url}/off/product`, { method: 'POST', headers: { 'content-type': 'text/plain' }, body: JSON.stringify({ token: proxy.token, barcode: code }), signal });
+      const r = await fetch(`${proxy.url}/off/product`, { method: 'POST', headers: { 'content-type': 'text/plain' }, body: JSON.stringify({ token: proxy.token, barcode: code }), signal: withTimeout(signal, 8_000) });
       const j = (await r.json()) as { ok?: boolean; status?: number; product?: { status?: string; product?: OffProduct } | null };
       if (j.ok && j.product) return interpret(code, j.product);
       if (j.ok && j.status === 404) return { status: 'notFound' };
     } catch (e) {
-      if ((e as Error).name === 'AbortError') throw e;
+      if ((e as Error).name === 'AbortError' && signal?.aborted) throw e; // caller cancelled; a timeout falls through
     }
   }
   try {
-    const r = await fetch(`${BASE}/${encodeURIComponent(code)}?fields=${FIELDS}`, { signal });
+    const r = await fetch(`${BASE}/${encodeURIComponent(code)}?fields=${FIELDS}`, { signal: withTimeout(signal, 12_000) });
     if (r.status === 404) return { status: 'notFound' };
     return interpret(code, (await r.json()) as { status?: string; product?: OffProduct });
   } catch (e) {
-    if ((e as Error).name === 'AbortError') throw e;
+    if ((e as Error).name === 'AbortError' && signal?.aborted) throw e;
     return { status: 'error', message: navigator.onLine ? 'Open Food Facts is not reachable right now.' : 'You are offline.' };
   }
 }
@@ -89,7 +95,7 @@ function interpret(code: string, d: { status?: string; product?: OffProduct }): 
 
 export async function searchOff(query: string, signal?: AbortSignal): Promise<OffFood[]> {
   const url = `${SEARCH}?q=${encodeURIComponent(query)}&langs=de,en&page_size=25&fields=${FIELDS}`;
-  const r = await fetch(url, { signal });
+  const r = await fetch(url, { signal: withTimeout(signal, 15_000) });
   if (!r.ok) throw new Error(`Open Food Facts search failed (HTTP ${r.status})`);
   const d = (await r.json()) as { hits?: OffProduct[] };
   return (d.hits ?? []).map(offToFood).filter((f): f is OffFood => f !== null);

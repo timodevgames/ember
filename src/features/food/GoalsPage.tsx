@@ -150,7 +150,13 @@ export default function GoalsPage() {
             if (kg > 20 && kg < 300) {
               await saveWeight(g.today, kg);
               setWeightDraft('');
-              if (profile) setSetting<Profile>('profile', { ...profile, weightKg: kg });
+              if (profile) {
+                const next = { ...profile, weightKg: kg };
+                setP(next);
+                // Calculated targets follow your weight; numbers you typed yourself stay.
+                if (goals && !goals.manual) await saveGoals(next, computeTargets(next), g.today, goals);
+                else await setSetting<Profile>('profile', next);
+              }
             }
           }}
         >

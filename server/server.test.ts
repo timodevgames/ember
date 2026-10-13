@@ -90,3 +90,16 @@ describe('http api', () => {
     expect((r2.json.product as { product: { product_name: string } }).product.product_name).toBe('Skyr');
   });
 });
+
+describe('backup', () => {
+  it('writes a consistent copy that opens as a database', async () => {
+    const { mkdtempSync } = await import('node:fs');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const s = new Store(':memory:');
+    s.merge([rec('a', 1)]);
+    const file = join(mkdtempSync(join(tmpdir(), 'ember-bk-')), 'copy.sqlite');
+    s.backupTo(file);
+    expect(new Store(file).get('habits', 'a')?.name).toBe('a');
+  });
+});
