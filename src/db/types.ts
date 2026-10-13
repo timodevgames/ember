@@ -1,4 +1,5 @@
 import type { Day } from '../core/date';
+import type { PetColor } from '../core/game/pet';
 
 /**
  * Every synced record carries these. `updatedAt` is real wall-clock ms (never
@@ -128,6 +129,23 @@ export interface Vacation extends SyncFields {
   to: Day;
   reason?: string;
 }
+
+/** Setting `pet`. */
+export interface PetSettings {
+  name: string;
+  color: PetColor;
+  /** The day the egg arrived — the game replays from here. */
+  startDay: Day;
+  /** Cosmetics bought in the shop and currently worn (ids from cosmetics.ts). */
+  equipped?: { hat?: string; bg?: string };
+}
+
+/** Setting `prefs`. */
+export interface Prefs {
+  dayStartHour: number;
+}
+
+export const DEFAULT_PREFS: Prefs = { dayStartHour: 4 };
 
 /** Key/value settings, synced per key (id = key). */
 export interface SettingRow extends SyncFields {

@@ -8,6 +8,7 @@ import { useGame } from '../../state/game';
 import Ring from '../../components/Ring';
 import HabitRow from './HabitRow';
 import PetCard from './PetCard';
+import { RecapTeaser } from '../recap/RecapPage';
 
 export default function TodayPage() {
   const g = useGame();
@@ -50,7 +51,9 @@ export default function TodayPage() {
         </div>
       </header>
 
-      <PetCard game={game} pet={pet} now={g.now} />
+      <PetCard game={game} pet={pet} now={g.now} worn={g.worn} />
+
+      <RecapTeaser today={today} startDay={pet.startDay} />
 
       <section className="flex items-center gap-4 card px-4 py-3">
         <Ring value={score ?? 1} size={58} stroke={6}>

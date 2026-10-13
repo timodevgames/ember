@@ -1,22 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import type { Day } from '../core/date';
-import type { PetColor } from '../core/game/pet';
 import { db } from './db';
 import { save } from './repo';
 import type { SettingRow } from './types';
 
-export interface PetSettings {
-  name: string;
-  color: PetColor;
-  /** The day the egg arrived — the game replays from here. */
-  startDay: Day;
-}
-
-export interface Prefs {
-  dayStartHour: number;
-}
-
-export const DEFAULT_PREFS: Prefs = { dayStartHour: 4 };
+export { DEFAULT_PREFS, type PetSettings, type Prefs } from './types';
 
 export async function getSetting<T>(key: string, fallback: T): Promise<T> {
   const row = await db.settings.get(key);

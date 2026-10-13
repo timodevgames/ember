@@ -21,7 +21,10 @@ await build({
   target: 'node22',
   outfile: 'server/dist/index.mjs',
   define: { __VERSION__: JSON.stringify(version) },
-  banner: { js: '// habits-api — built from github.com/timodevgames/ember (server/). Do not edit here.' },
+  // web-push is CommonJS and require()s Node built-ins; give the ESM bundle a real `require`.
+  banner: {
+    js: "// habits-api — built from github.com/timodevgames/ember (server/). Do not edit here.\nimport { createRequire as __createRequire } from 'node:module';\nconst require = __createRequire(import.meta.url);",
+  },
   logLevel: 'warning',
 });
 console.log(`built server/dist/index.mjs (${version})`);

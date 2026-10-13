@@ -8,8 +8,9 @@ import { RULES } from '../../core/game/rules';
 import { buy, deleteReward, saveReward } from '../../state/actions';
 import PageHeader from '../../components/PageHeader';
 import Sheet from '../../components/Sheet';
+import CosmeticsShop from './CosmeticsShop';
 
-type Pending = { itemId: string; name: string; cost: number; icon: string } | null;
+type Pending = { itemId: string; name: string; cost: number; icon: string; after?: () => Promise<void> } | null;
 
 export default function ShopPage() {
   const g = useGame();
@@ -36,6 +37,8 @@ export default function ShopPage() {
         </div>
         <BuyButton cost={RULES.freeze.cost} coins={game.coins} disabled={atMax} label={atMax ? 'Full' : undefined} onClick={() => setPending({ itemId: 'freeze', name: 'Streak freeze', cost: RULES.freeze.cost, icon: '❄️' })} />
       </section>
+
+      <CosmeticsShop onBuy={setPending} />
 
       <section className="space-y-2">
         <div className="flex items-center justify-between px-1">
@@ -88,7 +91,14 @@ export default function ShopPage() {
               <button
                 onClick={async () => {
                   await buy(pending.itemId, pending.name, pending.cost, g.today);
-                  setDone(pending.itemId === 'freeze' ? 'Freeze stored. Your streak is safer now ❄️' : `Enjoy it — you earned "${pending.name}" 🎉`);
+                  await pending.after?.();
+                  setDone(
+                    pending.itemId === 'freeze'
+                      ? 'Freeze stored. Your streak is safer now ❄️'
+                      : pending.itemId.startsWith('cosmetic:')
+                        ? `${pending.name} — looking good ✨`
+                        : `Enjoy it — you earned "${pending.name}" 🎉`,
+                  );
                   setPending(null);
                 }}
                 className="rounded-xl bg-gold-400 py-3 font-bold text-night-950"

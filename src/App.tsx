@@ -17,6 +17,7 @@ import CustomFoodEditor from './features/food/CustomFoodEditor';
 import RecipeEditor from './features/food/RecipeEditor';
 import GoalsPage from './features/food/GoalsPage';
 import UpdateBanner from './components/UpdateBanner';
+import RecapPage from './features/recap/RecapPage';
 
 const TABS = [
   { to: '/', icon: '🏠', label: 'Today', end: true },
@@ -64,6 +65,7 @@ function Shell() {
             <Route path="/pet" element={<PetPage />} />
             <Route path="/pet/shop" element={<ShopPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/recap" element={<RecapPage />} />
             {import.meta.env.DEV && <Route path="/dev/pets" element={<PetGallery />} />}
             <Route path="*" element={<TodayPage />} />
           </Routes>

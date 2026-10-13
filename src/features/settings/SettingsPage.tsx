@@ -12,6 +12,7 @@ import PetView from '../pet/PetView';
 import SyncSection from './SyncSection';
 import { resyncEverything } from '../../state/sync';
 import IntegrationsSection from './IntegrationsSection';
+import RemindersSection from './RemindersSection';
 
 export default function SettingsPage() {
   const g = useGame();
@@ -31,6 +32,10 @@ export default function SettingsPage() {
 
       <Section title="Sync (Pixel server)">
         <SyncSection />
+      </Section>
+
+      <Section title="Reminders">
+        <RemindersSection />
       </Section>
 
       <Section title="Auto-checks">

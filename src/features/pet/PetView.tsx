@@ -1,6 +1,7 @@
 import { useId, useMemo } from 'react';
 import { PALETTES, type Mood, type PetColor } from '../../core/game/pet';
 import { RULES } from '../../core/game/rules';
+import Hat from './Hat';
 
 /**
  * The fox spirit, drawn in SVG. Stage decides size, tail count and extras
@@ -17,6 +18,8 @@ interface Props {
   eggProgress?: number;
   size?: number;
   animate?: boolean;
+  /** Cosmetic hat id (see cosmetics.ts). */
+  hat?: string;
 }
 
 const TAIL_PATH =
@@ -30,7 +33,7 @@ function tailAngles(n: number): number[] {
   return Array.from({ length: n }, (_, i) => -spread + offset + (2 * spread * i) / (n - 1));
 }
 
-export default function PetView({ stage, mood, color = 'ember', eggProgress = 0, size = 200, animate = true }: Props) {
+export default function PetView({ stage, mood, color = 'ember', eggProgress = 0, size = 200, animate = true, hat }: Props) {
   const uid = useId().replace(/:/g, '');
   const p = PALETTES[color];
   const def = RULES.stages[Math.min(stage, RULES.stages.length - 1)];
@@ -197,6 +200,7 @@ export default function PetView({ stage, mood, color = 'ember', eggProgress = 0,
               </>
             )}
             {sick && <path d="M 26 -14 C 23 -9 23 -5 26 -3 C 29 -5 29 -9 26 -14 Z" fill="#7cc8ff" opacity="0.9" />}
+            {hat && <Hat id={hat} />}
           </g>
         </g>
 

@@ -5,8 +5,9 @@ import { RULES } from '../../core/game/rules';
 import type { PetSettings } from '../../db/settings';
 import Bar from '../../components/Bar';
 import PetView from '../pet/PetView';
+import { sceneBackground, STARRY } from '../../core/game/cosmetics';
 
-export default function PetCard({ game, pet, now }: { game: GameState; pet: PetSettings; now: number }) {
+export default function PetCard({ game, pet, now, worn }: { game: GameState; pet: PetSettings; now: number; worn: { hat?: string; bg?: string } }) {
   const hour = new Date(now).getHours();
   const mood = petMood(game, hour);
   const stage = RULES.stages[game.stage];
@@ -19,16 +20,10 @@ export default function PetCard({ game, pet, now }: { game: GameState; pet: PetS
       <Link
         to="/pet"
         className="relative block"
-        style={{
-          background: game.away
-            ? 'linear-gradient(180deg, #0f2a22 0%, #13101d 100%)'
-            : night
-              ? 'radial-gradient(120% 90% at 50% 100%, #2a2148 0%, #13101d 70%)'
-              : 'radial-gradient(120% 90% at 50% 100%, #3a2433 0%, #181424 70%)',
-        }}
+        style={{ background: sceneBackground(worn.bg, night, game.away) }}
         aria-label={`${pet.name} — open pet page`}
       >
-        {night && !game.away && (
+        {((night && !worn.bg) || STARRY.has(worn.bg ?? '')) && !game.away && (
           <div className="pointer-events-none absolute inset-0 opacity-70" aria-hidden>
             {[
               [12, 18],
@@ -42,7 +37,7 @@ export default function PetCard({ game, pet, now }: { game: GameState; pet: PetS
           </div>
         )}
         <div className="flex justify-center pt-2">
-          <PetView stage={game.stage} mood={mood} color={pet.color} eggProgress={Math.min(1, game.bondXp / RULES.stages[1].xp)} size={176} />
+          <PetView stage={game.stage} mood={mood} color={pet.color} eggProgress={Math.min(1, game.bondXp / RULES.stages[1].xp)} size={176} hat={worn.hat} />
         </div>
       </Link>
 

@@ -65,10 +65,12 @@ export const RULES: Rules = {
   stages: [
     { key: 'egg', name: 'Egg', xp: 0, tails: 0, scale: 0.7 },
     { key: 'hatchling', name: 'Hatchling', xp: 100, tails: 1, scale: 0.72 },
-    { key: 'kit', name: 'Kit', xp: 500, tails: 1, scale: 0.82 },
-    { key: 'fox', name: 'Three-Tail', xp: 1500, tails: 3, scale: 0.9 },
-    { key: 'spirit', name: 'Five-Tail Spirit', xp: 3500, tails: 5, scale: 0.96 },
-    { key: 'legend', name: 'Nine-Tail Legend', xp: 8000, tails: 9, scale: 1 },
+    // Tuned with balance.test.ts: at ~80 % consistency → Kit ≈ week 1, Three-Tail ≈ week 3,
+    // Five-Tail ≈ day 60 (the habit-formation median), Legend ≈ 5 months.
+    { key: 'kit', name: 'Kit', xp: 600, tails: 1, scale: 0.82 },
+    { key: 'fox', name: 'Three-Tail', xp: 1800, tails: 3, scale: 0.9 },
+    { key: 'spirit', name: 'Five-Tail Spirit', xp: 5000, tails: 5, scale: 0.96 },
+    { key: 'legend', name: 'Nine-Tail Legend', xp: 12000, tails: 9, scale: 1 },
   ],
   finds: [
     { id: 'acorn', icon: '🌰', name: 'Acorn', weight: 28 },

@@ -10,6 +10,7 @@ import PageHeader from '../../components/PageHeader';
 import Heatmap from '../../components/Heatmap';
 import Bar from '../../components/Bar';
 import PetView from './PetView';
+import { sceneBackground } from '../../core/game/cosmetics';
 
 export default function PetPage() {
   const g = useGame();
@@ -41,8 +42,8 @@ export default function PetPage() {
       />
 
       <section className="card overflow-hidden">
-        <div className="flex justify-center bg-[radial-gradient(120%_90%_at_50%_100%,#3a2433_0%,#181424_70%)] pt-3">
-          <PetView stage={game.stage} mood={mood} color={pet.color} eggProgress={Math.min(1, game.bondXp / RULES.stages[1].xp)} size={230} />
+        <div className="flex justify-center pt-3" style={{ background: sceneBackground(g.worn.bg, false, game.away) }}>
+          <PetView stage={game.stage} mood={mood} color={pet.color} eggProgress={Math.min(1, game.bondXp / RULES.stages[1].xp)} size={230} hat={g.worn.hat} />
         </div>
         <div className="space-y-2 p-4">
           <div className="flex justify-between text-sm">
@@ -52,6 +53,12 @@ export default function PetPage() {
           <Bar value={sp.ratio} max={1} color="var(--color-xp-400)" label="Evolution progress" />
         </div>
       </section>
+
+      <Link to="/recap" className="card flex items-center gap-3 px-4 py-3">
+        <span className="text-2xl">📊</span>
+        <span className="flex-1 font-semibold">Week in review</span>
+        <span className="text-zinc-500">›</span>
+      </Link>
 
       <section className="grid grid-cols-3 gap-2 text-center">
         <Tile label="HP" value={`${game.hp}`} icon="❤️" />

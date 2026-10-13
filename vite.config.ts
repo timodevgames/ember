@@ -37,6 +37,8 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,woff2,json,wasm}'],
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         navigateFallback: `${base}index.html`,
+        // push + notificationclick handlers live in public/push-sw.js
+        importScripts: ['push-sw.js'],
       },
     }),
   ],

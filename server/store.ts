@@ -24,6 +24,17 @@ export class Store {
         PRIMARY KEY (tbl, id)
       );
       CREATE INDEX IF NOT EXISTS records_seq ON records (seq);
+      CREATE TABLE IF NOT EXISTS push_subs (
+        endpoint TEXT PRIMARY KEY,
+        deviceId TEXT NOT NULL,
+        sub TEXT NOT NULL,
+        prefs TEXT NOT NULL,
+        updatedAt INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS push_sent (
+        key TEXT PRIMARY KEY,
+        at INTEGER NOT NULL
+      );
       CREATE TABLE IF NOT EXISTS off_cache (
         code TEXT PRIMARY KEY,
         fetchedAt INTEGER NOT NULL,
@@ -95,6 +106,41 @@ export class Store {
   /** Consistent snapshot of the whole database (safe while the server is running). */
   backupTo(file: string): void {
     this.db.prepare('VACUUM INTO ?').run(file);
+  }
+
+  // --- push subscriptions (server-only, not synced) --------------------------
+
+  pushUpsert(endpoint: string, deviceId: string, sub: unknown, prefs: unknown): void {
+    this.db
+      .prepare('INSERT INTO push_subs (endpoint, deviceId, sub, prefs, updatedAt) VALUES (?, ?, ?, ?, ?) ON CONFLICT (endpoint) DO UPDATE SET deviceId = excluded.deviceId, sub = excluded.sub, prefs = excluded.prefs, updatedAt = excluded.updatedAt')
+      .run(endpoint, deviceId, JSON.stringify(sub), JSON.stringify(prefs), Date.now());
+    // One subscription per device: an iPhone that re-subscribed gets a new endpoint.
+    this.db.prepare('DELETE FROM push_subs WHERE deviceId = ? AND endpoint != ?').run(deviceId, endpoint);
+  }
+
+  pushDelete(endpoint: string): void {
+    this.db.prepare('DELETE FROM push_subs WHERE endpoint = ?').run(endpoint);
+  }
+
+  pushAll<S, P>(): { endpoint: string; deviceId: string; sub: S; prefs: P }[] {
+    return (this.db.prepare('SELECT endpoint, deviceId, sub, prefs FROM push_subs').all() as { endpoint: string; deviceId: string; sub: string; prefs: string }[]).map((r) => ({
+      endpoint: r.endpoint,
+      deviceId: r.deviceId,
+      sub: JSON.parse(r.sub) as S,
+      prefs: JSON.parse(r.prefs) as P,
+    }));
+  }
+
+  /** Marks `key` as sent; false if it already was (so each reminder goes out once). */
+  pushMarkOnce(key: string): boolean {
+    const r = this.db.prepare('INSERT OR IGNORE INTO push_sent (key, at) VALUES (?, ?)').run(key, Date.now());
+    this.db.prepare('DELETE FROM push_sent WHERE at < ?').run(Date.now() - 14 * 86_400_000);
+    return Number(r.changes) > 0;
+  }
+
+  /** Undo pushMarkOnce after a failed delivery so the next tick retries. */
+  pushUnmark(key: string): void {
+    this.db.prepare('DELETE FROM push_sent WHERE key = ?').run(key);
   }
 
   stats(): Record<string, number> {

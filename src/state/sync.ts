@@ -24,7 +24,7 @@ export interface SyncStatus {
   error?: string;
 }
 
-const K = { config: 'sync.config', cursor: 'sync.cursor', lastPush: 'sync.lastPushAt', lastSync: 'sync.lastSyncAt' };
+const K = { config: 'sync.config', cursor: 'sync.cursor', lastPush: 'sync.lastPushAt', lastPushIds: 'sync.lastPushIds', lastSync: 'sync.lastSyncAt' };
 export const DEFAULT_SERVER = 'https://paraesthetic-hilary-guidingly.ngrok-free.dev/habits';
 
 // --- status store -----------------------------------------------------------
@@ -72,7 +72,7 @@ export async function getSyncConfig(): Promise<SyncConfig | null> {
 
 // --- transport --------------------------------------------------------------
 
-async function call<T>(cfg: SyncConfig, path: string, body: object, timeoutMs = 20_000): Promise<T> {
+export async function call<T>(cfg: SyncConfig, path: string, body: object, timeoutMs = 20_000): Promise<T> {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), timeoutMs);
   try {
@@ -99,20 +99,29 @@ export async function checkServer(cfg: SyncConfig): Promise<{ hasData: boolean }
 
 // --- sync -------------------------------------------------------------------
 
-async function collect(lastPushAt: number, everything: boolean): Promise<{ changes: Change[]; maxUpdatedAt: number }> {
+/**
+ * This device's rows changed since the last push. `≥ lastPushAt` so a row saved
+ * in the same millisecond as the last push isn't skipped; the rows already
+ * pushed at exactly that millisecond (`pushedAtBoundary`) are left out so a
+ * bulk save isn't re-uploaded on every sync.
+ */
+async function collect(lastPushAt: number, pushedAtBoundary: string[], everything: boolean): Promise<{ changes: Change[]; maxUpdatedAt: number; boundary: string[] }> {
   const me = deviceId();
+  const done = new Set(pushedAtBoundary);
   const changes: Change[] = [];
   let maxUpdatedAt = lastPushAt;
   for (const t of SYNCED_TABLES) {
-    // ≥, not >: a row saved in the same millisecond as the last push must not be skipped (the server ignores ties).
     const rows = (await db.table(t).where('updatedAt').aboveOrEqual(lastPushAt).toArray()) as SyncFields[];
     for (const r of rows) {
       if (!everything && r.deviceId !== me) continue; // pulled from elsewhere — don't echo it back
+      if (r.updatedAt === lastPushAt && done.has(`${t}/${r.id}`)) continue;
       changes.push({ table: t, record: r as Change['record'] });
       maxUpdatedAt = Math.max(maxUpdatedAt, r.updatedAt);
     }
   }
-  return { changes, maxUpdatedAt };
+  const boundary = changes.filter((c) => c.record.updatedAt === maxUpdatedAt).map((c) => `${c.table}/${c.record.id}`);
+  // Nothing new at a later time: keep remembering what was already sent at this millisecond.
+  return { changes, maxUpdatedAt, boundary: maxUpdatedAt === lastPushAt ? [...done, ...boundary] : boundary };
 }
 
 async function applyRemote(changes: Change[]): Promise<number> {
@@ -160,10 +169,12 @@ export async function syncNow(): Promise<void> {
       const lastPushAt = await getMeta<number>(K.lastPush, 0);
       const cursor = await getMeta<number>(K.cursor, 0);
       // The very first push sends everything (also rows imported from a backup).
-      const { changes, maxUpdatedAt } = await collect(lastPushAt, lastPushAt === 0 && cursor === 0);
+      const pushedAtBoundary = await getMeta<string[]>(K.lastPushIds, []);
+      const { changes, maxUpdatedAt, boundary } = await collect(lastPushAt, pushedAtBoundary, lastPushAt === 0 && cursor === 0);
       const r = await call<Extract<SyncResponse, { ok: true }>>(cfg, '/sync', { deviceId: deviceId(), since: cursor, changes });
       await applyRemote(r.changes);
       await setMeta(K.lastPush, Math.max(lastPushAt, maxUpdatedAt, 1));
+      await setMeta(K.lastPushIds, boundary);
       await setMeta(K.cursor, r.cursor);
       if (!r.more) break;
     }
@@ -195,12 +206,14 @@ export async function connect(cfg: SyncConfig, replaceLocal: boolean): Promise<v
   await setMeta(K.config, cfg);
   await setMeta(K.cursor, 0);
   await setMeta(K.lastPush, 0);
+  await setMeta(K.lastPushIds, []);
   await syncNow();
 }
 
 /** After a backup import: push everything again on the next sync (the server keeps whatever is newer). */
 export async function resyncEverything(): Promise<void> {
   await setMeta(K.lastPush, 0);
+  await setMeta(K.lastPushIds, []);
   await setMeta(K.cursor, 0);
   void syncNow();
 }

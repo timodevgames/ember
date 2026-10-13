@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { Store } from './store';
 import { createHandler } from './app';
 import { runIntegrations, type RunEnv } from './integrations/runner';
+import { loadVapid, makeSender, pushTick } from './push';
 
 declare const __VERSION__: string;
 
@@ -62,7 +63,31 @@ function runOnce(minGapMs = 0): Promise<unknown> {
   return running;
 }
 
-const handler = createHandler(store, { token: TOKEN, version: __VERSION__, startedAt: Date.now(), runIntegrations: () => runOnce(10_000) });
+const log = (m: string) => console.log(`${new Date().toISOString()} ${m}`);
+const vapid = loadVapid(join(DATA_DIR, 'vapid.json'));
+const sendPush = makeSender(vapid, log);
+const handler = createHandler(store, {
+  token: TOKEN,
+  version: __VERSION__,
+  startedAt: Date.now(),
+  runIntegrations: () => runOnce(10_000),
+  push: { publicKey: vapid.publicKey, send: sendPush },
+});
+
+// Reminders: check every 5 minutes whether someone's chosen hour has come.
+let ticking = false;
+setInterval(async () => {
+  if (ticking) return;
+  ticking = true;
+  try {
+    const n = await pushTick(store, sendPush);
+    if (n) log(`push sent ${n}`);
+  } catch (e) {
+    log(`push tick FAILED ${(e as Error).stack}`);
+  } finally {
+    ticking = false;
+  }
+}, 5 * 60_000);
 // Daily backup of the database: data/backups/ember-YYYY-MM-DD.sqlite, the newest 14 are kept.
 const BACKUP_DIR = join(DATA_DIR, 'backups');
 function backupDaily(): void {

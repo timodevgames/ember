@@ -11,7 +11,7 @@ Full product plan: `docs/PLAN.md` (approved 2026-10-13). Phases 1–5 there.
 - `npm run dev` — dev server on port 5180 (also `.claude/launch.json` → "ember")
 - `npm test` — vitest (engine, schedule, nutrition, sync)
 - `npm run build` — typecheck + production build (PWA, service worker)
-- `npm run build:server` / `npm run deploy:server` — bundle `server/` with esbuild and ship it to the Pixel (`ssh termux`), printing `/health` (version = git sha + build time) as proof it's live
+- `npm run build:server` / `npm run deploy:server` — bundle `server/` with esbuild (CommonJS deps like web-push get a `createRequire` banner) and ship it to the Pixel (`ssh termux`), printing `/health` (version = git sha + build time) as proof it's live
 - `npm run build:food` — regenerate `public/data/foods-bls.json` from the BLS zip in `scripts/data/bls/`
 - `npm run icons` — re-render PNG icons from `public/icons/icon.svg` (macOS QuickLook)
 - Dev-only page `/dev/pets` shows every pet stage × mood.
@@ -37,7 +37,17 @@ Full product plan: `docs/PLAN.md` (approved 2026-10-13). Phases 1–5 there.
 - **habits-api** (`server/`): `node:http` + `node:sqlite`, zero runtime deps, one `records(tbl,id,updatedAt,seq,data)` table + `off_cache` (Open Food Facts proxy with a real User-Agent, 30-day cache). Runs on the Pixel under pm2 as `habits-api` on 127.0.0.1:3040, behind edge-proxy `/habits` → `https://paraesthetic-hilary-guidingly.ngrok-free.dev/habits`. `.env` holds `SYNC_TOKEN`; `~/apps/habits-api/pairing.sh` prints the pairing code. Server ops details live in `Pixel Server/CLAUDE.md`.
 - **Auto-checks** (`server/integrations/`): `runner.ts` runs 15 s after start, every 30 min, and on `POST /integrations/run` (the app's "Check now", throttled to 10 s). It reads habits + the synced settings `integrations` (Riot ID, GD username, Music Coach port, time zone) and `prefs` (day start) from its own store — falling back to `.env` (`RIOT_ID`, `RIOT_REGION`, `GD_USERNAME`, `MUSIC_COACH_PORT`, `HENRIK_API_KEY`) — and writes `habitLogs` with fixed ids `auto:<source>:<habitId>:<day>` only when the value changed, for the last 7 days and never before a habit's `createdDay`. Logical days are computed in the user's IANA zone (`days.ts`), never the phone's. Sources: Music Coach's own sync file (`~/apps/Music-Couch/server/data/sync-<port>.json`, minutes from `startedAt/endedAt`), HenrikDev v4 matches + v3 MMR (header `Authorization: <key>`), GDBrowser profile (done when any counter rose vs. the last snapshot of an earlier day; the first snapshot is a baseline). Per-day stats go to `integrationStats` `stat:<source>:<day>`, the last result per source to `status:<source>`. These server rows don't count as "existing data" when pairing a new device.
 - **Counters must be atomic:** use `addHabitValue` (read + write in one Dexie transaction) for +1/+5 taps — "props value + 1" loses fast taps.
+- **Shared game state** (`src/core/game/state.ts` `computeGame`): raw records → habits, log index, nutrition, replay. Used by `GameProvider` AND by the server's reminders, so a push says exactly what the app shows.
+- **Balance** is guarded by `balance.test.ts` (simulates a setup like Timo's at different consistency levels): ~80 % never loses the pet and reaches the Five-Tail around day 60, ~30 % loses it within weeks. If a rules change breaks it, the game got easier/harsher — decide on purpose.
+- **Cosmetics** (`src/core/game/cosmetics.ts`, `features/pet/Hat.tsx`, `CosmeticsShop.tsx`): bought as `cosmetic:<id>` purchases (the replay deducts coins), worn via `pet.equipped {hat, bg}`; some unlock at later stages. Hats are SVG in head coordinates, scenes are CSS backgrounds (`sceneBackground`).
+- **Weekly recap** (`src/core/game/recap.ts` + `features/recap/RecapPage.tsx`): only finished days count; teaser card on Today on Mondays/Tuesdays.
+- **Reminders** (`src/state/push.ts`, `public/push-sw.js` imported into the generated SW, `server/push.ts` + `reminders.ts`): the device subscribes (iOS: only from the Home Screen app, iOS 16.4+), the server keeps subscriptions (one per device, not synced), checks every 5 min whether a chosen hour (in the user's time zone) has come and sends each kind once per day via `web-push` (bundled; VAPID keys in `data/vapid.json`). Evening = only if something is still open, with the projected HP loss; morning = today's plan. 404/410 from the push service deletes the subscription.
+- **App updates**: vite-plugin-pwa in `prompt` mode + `UpdateBanner` ("tap to update"), checked on launch, on focus and hourly (`src/state/pwa.ts`).
 - **PetView** is pure SVG with SMIL animation (SMIL keeps SVG coordinate semantics in Safari; CSS transforms on SVG groups don't). Tail count/size/extras come from `RULES.stages`.
+
+## Server data safety
+
+`~/apps/habits-api/data/` holds `ember.sqlite` (+ WAL), `vapid.json` (push keys — losing them breaks every subscription) and `backups/ember-YYYY-MM-DD.sqlite` (daily `VACUUM INTO`, newest 14). Never delete `data/`; restore = stop pm2 app, copy a backup over `ember.sqlite`, delete the `-wal`/`-shm` files, start.
 
 ## Conventions
 
@@ -55,4 +65,5 @@ GitHub Pages via `.github/workflows/pages.yml` (sets `BASE_PATH=/<repo>/`, copie
 - **Phase 2 done** (2026-10-13): BLS food table, search, diary, goals/targets, weight trend, custom foods, recipes, barcode scanning (zxing-wasm) + Open Food Facts lookup/search, nutrition goals in the day score.
 - **Phase 3 done** (2026-10-13): habits-api on the Pixel (pm2, port 3040, edge-proxy `/habits`, heal.sh probe), sync client + pairing UI, barcode lookups via the server's OFF cache. Verified with two browser origins as two devices.
 - **Phase 4 done** (2026-10-13): auto-checks for Music Coach (port 5173 = Timo's), Valorant (`timodevgames#tdg`, EU, HenrikDev key in server `.env`) and Geometry Dash (`TimoDevGames`), status + "Check now" in Settings → Auto-checks, rank/progress/minutes cards on habit pages, 🔗 auto badge on Today.
-- Next: Phase 5 — web push reminders (VAPID), pet cosmetics, weekly recap, balance tuning after real usage.
+- **Review + Phase 5 done** (2026-10-13): timeouts on all outgoing requests, sync edge cases, update banner, daily server DB backups; reminders (web push), cosmetics, weekly recap, balance retune (Kit 600 / Three-Tail 1800 / Five-Tail 5000 / Legend 12000) guarded by `balance.test.ts`.
+- Open: tune from Timo's real usage; verify on the real iPhone (camera scan, push delivery).

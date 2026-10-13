@@ -1,14 +1,14 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
-import { alive } from '../db/repo';
 import { DEFAULT_PREFS, getSetting, type PetSettings, type Prefs } from '../db/settings';
-import type { FoodLog, Habit, Purchase, Vacation } from '../db/types';
+import type { Habit, Purchase, Vacation } from '../db/types';
 import { logicalDay, type Day } from '../core/date';
 import { nowMs } from '../core/sandbox';
-import { indexLogs, type LogIndex } from '../core/habits/schedule';
-import { itemsForDay, type ItemContext, type NutritionDay, type NutritionGoals } from '../core/game/items';
-import { replay, type GameState } from '../core/game/engine';
+import type { LogIndex } from '../core/habits/schedule';
+import type { ItemContext, NutritionDay, NutritionGoals } from '../core/game/items';
+import type { GameState } from '../core/game/engine';
+import { computeGame } from '../core/game/state';
 
 export interface GameData {
   now: number;
@@ -25,6 +25,7 @@ export interface GameData {
   game: GameState | null;
   /** `${habitId}:${day}` where an auto-check (Music Coach, Valorant, GD) logged progress. */
   autoSet: Set<string>;
+  worn: { hat?: string; bg?: string };
 }
 
 const GameContext = createContext<GameData | null>(null);
@@ -42,19 +43,6 @@ function useNow(): number {
     };
   }, []);
   return now;
-}
-
-function summarize(logs: FoodLog[]): Map<Day, NutritionDay> {
-  const out = new Map<Day, NutritionDay & { mealSet: Set<string> }>();
-  for (const l of logs) {
-    let d = out.get(l.day);
-    if (!d) out.set(l.day, (d = { kcal: 0, protein: 0, meals: 0, mealSet: new Set() }));
-    d.kcal += l.nutrients.kcal;
-    d.protein += l.nutrients.protein;
-    d.mealSet.add(l.meal);
-    d.meals = d.mealSet.size;
-  }
-  return out;
 }
 
 export function GameProvider({ children }: { children: ReactNode }) {
@@ -77,38 +65,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (!data) return null;
     const prefs = { ...DEFAULT_PREFS, ...data.prefs };
     const today = logicalDay(now, prefs.dayStartHour);
-    const habits = alive(data.habits).sort((a, b) => a.order - b.order);
-    const logs = indexLogs(data.logs);
-    const autoSet = new Set(alive(data.logs).filter((l) => l.source !== 'manual' && l.value > 0).map((l) => `${l.habitId}:${l.day}`));
-    const nutrition = summarize(alive(data.foodLogs));
-    const nutritionFor = (day: Day): NutritionDay => nutrition.get(day) ?? { kcal: 0, protein: 0, meals: 0 };
-    const itemCtx: ItemContext = { habits, logs, nutritionGoals: data.goals, nutritionFor };
-    const purchases = alive(data.purchases);
-    const vacations = alive(data.vacations);
-    const game = data.pet
-      ? replay({
-          startDay: data.pet.startDay <= today ? data.pet.startDay : today,
-          today,
-          itemsFor: (d) => itemsForDay(d, itemCtx),
-          purchases,
-          vacations,
-        })
-      : null;
-    return {
-      now,
+    const c = computeGame(
+      { habits: data.habits, habitLogs: data.logs, purchases: data.purchases, vacations: data.vacations, foodLogs: data.foodLogs, pet: data.pet, goals: data.goals },
       today,
-      prefs,
-      pet: data.pet,
-      habits,
-      logs,
-      purchases,
-      vacations,
-      nutritionGoals: data.goals,
-      nutritionFor,
-      itemCtx,
-      game,
-      autoSet,
-    };
+    );
+    return { now, today, prefs, pet: data.pet, nutritionGoals: data.goals, ...c };
   }, [data, now]);
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
