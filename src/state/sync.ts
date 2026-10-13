@@ -93,7 +93,8 @@ async function call<T>(cfg: SyncConfig, path: string, body: object, timeoutMs = 
 
 export async function checkServer(cfg: SyncConfig): Promise<{ hasData: boolean }> {
   const r = await call<Extract<SyncResponse, { ok: true }>>(cfg, '/sync', { deviceId: deviceId(), since: 0, changes: [] });
-  return { hasData: r.changes.length > 0 };
+  // Server-written rows (integration stats/status) don't count — only a real pet or habits do.
+  return { hasData: r.changes.some((c) => c.table === 'habits' || (c.table === 'settings' && c.record.id === 'pet')) };
 }
 
 // --- sync -------------------------------------------------------------------
@@ -128,6 +129,14 @@ async function applyRemote(changes: Change[]): Promise<number> {
     }
   });
   return n;
+}
+
+/** Ask the server to run the auto-checks right away, then pull the results. */
+export async function runIntegrationsNow(): Promise<void> {
+  const cfg = await getSyncConfig();
+  if (!cfg) throw new Error('Connect sync first — the auto-checks run on your Pixel server.');
+  await call(cfg, '/integrations/run', {}, 60_000);
+  await syncNow();
 }
 
 let running = false;

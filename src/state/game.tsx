@@ -23,6 +23,8 @@ export interface GameData {
   nutritionFor: (day: Day) => NutritionDay;
   itemCtx: ItemContext;
   game: GameState | null;
+  /** `${habitId}:${day}` where an auto-check (Music Coach, Valorant, GD) logged progress. */
+  autoSet: Set<string>;
 }
 
 const GameContext = createContext<GameData | null>(null);
@@ -77,6 +79,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const today = logicalDay(now, prefs.dayStartHour);
     const habits = alive(data.habits).sort((a, b) => a.order - b.order);
     const logs = indexLogs(data.logs);
+    const autoSet = new Set(alive(data.logs).filter((l) => l.source !== 'manual' && l.value > 0).map((l) => `${l.habitId}:${l.day}`));
     const nutrition = summarize(alive(data.foodLogs));
     const nutritionFor = (day: Day): NutritionDay => nutrition.get(day) ?? { kcal: 0, protein: 0, meals: 0 };
     const itemCtx: ItemContext = { habits, logs, nutritionGoals: data.goals, nutritionFor };
@@ -104,6 +107,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       nutritionFor,
       itemCtx,
       game,
+      autoSet,
     };
   }, [data, now]);
 

@@ -10,6 +10,7 @@ import { isSandbox, sandboxOffsetDays, setSandbox, setSandboxOffsetDays } from '
 import PageHeader from '../../components/PageHeader';
 import PetView from '../pet/PetView';
 import SyncSection from './SyncSection';
+import IntegrationsSection from './IntegrationsSection';
 
 export default function SettingsPage() {
   const g = useGame();
@@ -29,6 +30,10 @@ export default function SettingsPage() {
 
       <Section title="Sync (Pixel server)">
         <SyncSection />
+      </Section>
+
+      <Section title="Auto-checks">
+        <IntegrationsSection />
       </Section>
 
       <Section title="Your pet">

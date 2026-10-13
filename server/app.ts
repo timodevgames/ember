@@ -9,6 +9,8 @@ export interface AppConfig {
   startedAt: number;
   fetchImpl?: typeof fetch;
   log?: (msg: string) => void;
+  /** Runs the auto-checks now (the app's "Check now" button). */
+  runIntegrations?: () => Promise<unknown>;
 }
 
 const OFF_FIELDS = 'code,product_name,product_name_de,product_name_en,brands,nutriments,serving_size,serving_quantity,quantity';
@@ -71,6 +73,11 @@ export function createHandler(store: Store, cfg: AppConfig) {
         if (json && (r.status === 200 || r.status === 404)) store.offPut(code, r.status, JSON.stringify(json));
         log(`off ${code} → ${r.status}`);
         return send(res, 200, { ok: true, cached: false, status: r.status, product: json });
+      }
+
+      if (path === '/integrations/run') {
+        if (!cfg.runIntegrations) return send(res, 404, { ok: false, error: 'integrations disabled' });
+        return send(res, 200, { ok: true, result: await cfg.runIntegrations() });
       }
 
       if (path === '/stats') return send(res, 200, { ok: true, tables: store.stats() });

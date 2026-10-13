@@ -194,7 +194,7 @@ export default function HabitEditor() {
           />
         </Field>
 
-        <Field label="Auto-check" hint="Connects once the Pixel server sync is set up. You can always tick it by hand.">
+        <Field label="Auto-check" hint="Your Pixel server ticks it for you (Settings → Auto-checks, needs sync). You can always tick it by hand.">
           <Chips
             value={form.autoSource ?? 'none'}
             options={[['none', 'Manual only'], ...(Object.keys(AUTO_SOURCES) as AutoSource[]).map((k) => [k, `${AUTO_SOURCES[k].icon} ${AUTO_SOURCES[k].label}`] as [string, string])]}

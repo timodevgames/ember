@@ -10,6 +10,7 @@ import PageHeader from '../../components/PageHeader';
 import Heatmap from '../../components/Heatmap';
 import Ring from '../../components/Ring';
 import Sheet from '../../components/Sheet';
+import IntegrationCard from './IntegrationCard';
 
 export default function HabitDetail() {
   const { id } = useParams();
@@ -55,6 +56,8 @@ export default function HabitDetail() {
           <Stat label="Stage" value={strengthLabel(st.strength)} />
         </div>
       </section>
+
+      {h.autoSource && <IntegrationCard source={h.autoSource} today={g.today} />}
 
       <section className="card p-4">
         <h3 className="mb-2 text-sm font-semibold text-zinc-300">Last months</h3>

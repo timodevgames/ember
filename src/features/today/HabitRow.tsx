@@ -19,9 +19,11 @@ interface Props {
   week?: { done: number; goal: number };
   bonus?: boolean;
   locked?: boolean;
+  /** Progress came in from an auto-check today. */
+  auto?: boolean;
 }
 
-export default function HabitRow({ habit, day, value, streak = 0, missedYesterday, week, bonus, locked }: Props) {
+export default function HabitRow({ habit, day, value, streak = 0, missedYesterday, week, bonus, locked, auto }: Props) {
   const progress = progressOf(habit, value);
   const done = progress >= 1;
   const [burst, setBurst] = useState(0);
@@ -67,6 +69,7 @@ export default function HabitRow({ habit, day, value, streak = 0, missedYesterda
             {week && <span className="text-zinc-500">· week {week.done + (done ? 1 : 0)}/{week.goal}</span>}
             {streak > 1 && <span className="text-ember-400">🔥 {streak}</span>}
             {bonus && <span className="text-xp-400">bonus</span>}
+            {auto && <span className="rounded-full bg-sky-500/15 px-1.5 text-sky-300">🔗 auto</span>}
             {missedYesterday && !done && <span className="rounded-full bg-hp-500/20 px-1.5 text-hp-400">don't miss twice</span>}
           </span>
         </span>
@@ -86,7 +89,7 @@ export default function HabitRow({ habit, day, value, streak = 0, missedYesterda
       <button
         type="button"
         onClick={onMain}
-        disabled={locked}
+        disabled={locked || (auto && habit.kind === 'check' && done)}
         className="relative shrink-0 disabled:opacity-50"
         aria-label={done ? `Undo ${habit.name}` : `Complete ${habit.name}`}
         aria-pressed={done}

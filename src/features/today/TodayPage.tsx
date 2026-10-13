@@ -98,6 +98,7 @@ export default function TodayPage() {
                 missedYesterday={offset === 0 && st.missedYesterday}
                 week={info.week}
                 bonus={info.state === 'bonus'}
+                auto={g.autoSet.has(`${h.id}:${day}`)}
               />
             );
           })}
@@ -124,7 +125,7 @@ export default function TodayPage() {
         <section className="space-y-2.5">
           <h3 className="px-1 text-xs font-semibold uppercase tracking-wider text-zinc-500">Still open this week</h3>
           {openRows.map(({ h, info, value }) => (
-            <HabitRow key={`${h.id}:${day}`} habit={h} day={day} value={value} week={info.week} />
+            <HabitRow key={`${h.id}:${day}`} habit={h} day={day} value={value} week={info.week} auto={g.autoSet.has(`${h.id}:${day}`)} />
           ))}
         </section>
       )}
@@ -134,7 +135,7 @@ export default function TodayPage() {
           <button onClick={() => setShowOff((s) => !s)} className="px-1 text-xs font-semibold uppercase tracking-wider text-zinc-500">
             {showOff ? '▾' : '▸'} Not scheduled ({offRows.length}) — bonus XP
           </button>
-          {showOff && offRows.map(({ h, value }) => <HabitRow key={`${h.id}:${day}`} habit={h} day={day} value={value} bonus />)}
+          {showOff && offRows.map(({ h, value }) => <HabitRow key={`${h.id}:${day}`} habit={h} day={day} value={value} bonus auto={g.autoSet.has(`${h.id}:${day}`)} />)}
         </section>
       )}
     </div>
