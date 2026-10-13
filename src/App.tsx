@@ -11,10 +11,16 @@ import SettingsPage from './features/settings/SettingsPage';
 import Onboarding from './features/onboarding/Onboarding';
 import EventCenter from './features/events/EventCenter';
 import PetGallery from './features/dev/PetGallery';
+import FoodPage from './features/food/FoodPage';
+import AddFoodPage from './features/food/AddFoodPage';
+import CustomFoodEditor from './features/food/CustomFoodEditor';
+import RecipeEditor from './features/food/RecipeEditor';
+import GoalsPage from './features/food/GoalsPage';
 
 const TABS = [
   { to: '/', icon: '🏠', label: 'Today', end: true },
   { to: '/habits', icon: '✅', label: 'Habits' },
+  { to: '/food', icon: '🍽️', label: 'Food' },
   { to: '/pet', icon: '🦊', label: 'Pet' },
   { to: '/settings', icon: '⚙️', label: 'Settings' },
 ];
@@ -47,6 +53,13 @@ function Shell() {
             <Route path="/habits/new" element={<HabitEditor />} />
             <Route path="/habits/:id" element={<HabitDetail />} />
             <Route path="/habits/:id/edit" element={<HabitEditor />} />
+            <Route path="/food" element={<FoodPage />} />
+            <Route path="/food/add" element={<AddFoodPage />} />
+            <Route path="/food/goals" element={<GoalsPage />} />
+            <Route path="/food/custom/new" element={<CustomFoodEditor />} />
+            <Route path="/food/custom/:id" element={<CustomFoodEditor />} />
+            <Route path="/food/recipe/new" element={<RecipeEditor />} />
+            <Route path="/food/recipe/:id" element={<RecipeEditor />} />
             <Route path="/pet" element={<PetPage />} />
             <Route path="/pet/shop" element={<ShopPage />} />
             <Route path="/settings" element={<SettingsPage />} />
@@ -56,7 +69,7 @@ function Shell() {
         </div>
       </main>
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-night-700 bg-night-900/90 backdrop-blur-md pb-safe">
-        <div className="mx-auto grid max-w-md grid-cols-4">
+        <div className="mx-auto grid max-w-md grid-cols-5">
           {TABS.map((t) => (
             <NavLink
               key={t.to}
