@@ -9,6 +9,7 @@ import { deleteVacation, saveVacation } from '../../state/actions';
 import { isSandbox, sandboxOffsetDays, setSandbox, setSandboxOffsetDays } from '../../core/sandbox';
 import PageHeader from '../../components/PageHeader';
 import PetView from '../pet/PetView';
+import SyncSection from './SyncSection';
 
 export default function SettingsPage() {
   const g = useGame();
@@ -25,6 +26,10 @@ export default function SettingsPage() {
   return (
     <div className="space-y-5 pb-8">
       <PageHeader title="Settings" />
+
+      <Section title="Sync (Pixel server)">
+        <SyncSection />
+      </Section>
 
       <Section title="Your pet">
         <label className="block text-sm text-zinc-400">
@@ -79,7 +84,7 @@ export default function SettingsPage() {
       </Section>
 
       <Section title="Backup">
-        <p className="mb-3 text-sm text-zinc-400">Everything is stored on this device. Export a backup now and then — sync with your Pixel server comes later.</p>
+        <p className="mb-3 text-sm text-zinc-400">Everything lives on this device (and on your Pixel server once sync is connected). A file backup now and then doesn't hurt.</p>
         <div className="grid grid-cols-2 gap-2">
           <button onClick={() => downloadBackup()} className="rounded-xl bg-night-800 py-3 font-semibold">
             ⬇️ Export

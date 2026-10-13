@@ -9,8 +9,11 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
-    "icons": "sh scripts/build-icons.sh"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p server",
+    "icons": "sh scripts/build-icons.sh",
+    "build:server": "node scripts/build-server.mjs",
+    "deploy:server": "sh scripts/deploy-server.sh",
+    "build:food": "node scripts/build-food-db.mjs scripts/data/bls/extracted/BLS_4_0_2025_DE/BLS_4_0_Daten_2025_DE.xlsx"
   },
   "dependencies": {
     "dexie": "^4.0.11",
@@ -26,6 +29,7 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "esbuild": "^0.28.2",
     "exceljs": "^4.4.0",
     "fake-indexeddb": "^6.2.5",
     "tailwindcss": "^4.1.0",

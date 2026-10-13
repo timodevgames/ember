@@ -20,6 +20,27 @@ export async function setHabitValue(habit: Habit, day: Day, value: number): Prom
   });
 }
 
+/**
+ * Add to today's value atomically. Fast repeated taps must not each write
+ * "props value + 1" (they'd all see the same stale value) — read and write in
+ * one transaction instead.
+ */
+export async function addHabitValue(habit: Habit, day: Day, delta: number): Promise<void> {
+  const id = manualLogId(habit.id, day);
+  await db.transaction('rw', db.habitLogs, async () => {
+    const existing = await db.habitLogs.get(id);
+    const cur = existing && !existing.deleted ? existing.value : 0;
+    await save<HabitLog>('habitLogs', {
+      id,
+      habitId: habit.id,
+      day,
+      value: Math.max(0, Math.round((cur + delta) * 10) / 10),
+      source: 'manual',
+      createdAt: existing?.createdAt ?? nowMs(),
+    });
+  });
+}
+
 export async function manualValue(habitId: string, day: Day): Promise<number> {
   const row = await db.habitLogs.get(manualLogId(habitId, day));
   return row && !row.deleted ? row.value : 0;

@@ -8,6 +8,8 @@ import { setMeta } from '../../db/repo';
 import { setSetting, type PetSettings } from '../../db/settings';
 import type { Day } from '../../core/date';
 import PetView from '../pet/PetView';
+import Sheet from '../../components/Sheet';
+import { PairingForm } from '../settings/SyncSection';
 
 export default function Onboarding({ today }: { today: Day }) {
   const nav = useNavigate();
@@ -15,6 +17,7 @@ export default function Onboarding({ today }: { today: Day }) {
   const [name, setName] = useState('Ember');
   const [color, setColor] = useState<PetColor>('ember');
   const [picked, setPicked] = useState<Set<string>>(new Set(['piano', 'valorant', 'gd']));
+  const [pairing, setPairing] = useState(false);
 
   const finish = async () => {
     let order = 0;
@@ -50,6 +53,9 @@ export default function Onboarding({ today }: { today: Day }) {
                 </button>
               ))}
             </div>
+            <button onClick={() => setPairing(true)} className="text-sm text-zinc-400 underline underline-offset-4">
+              Already using Ember on another device? Connect sync
+            </button>
           </div>
         )}
 
@@ -111,6 +117,9 @@ export default function Onboarding({ today }: { today: Day }) {
           {step === 0 ? 'Keep it warm' : step === 1 ? `Continue with ${picked.size} habit${picked.size === 1 ? '' : 's'}` : "Let's go"}
         </button>
       </div>
+      <Sheet open={pairing} onClose={() => setPairing(false)} title="Connect to your synced pet">
+        <PairingForm onDone={() => setPairing(false)} />
+      </Sheet>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import type { Habit } from '../../db/types';
 import type { Day } from '../../core/date';
 import { RULES } from '../../core/game/rules';
 import { progressOf, scheduleLabel } from '../../core/habits/schedule';
-import { setHabitValue } from '../../state/actions';
+import { addHabitValue, setHabitValue } from '../../state/actions';
 import Ring from '../../components/Ring';
 import Sparks from '../../components/Sparks';
 import Sheet from '../../components/Sheet';
@@ -34,12 +34,13 @@ export default function HabitRow({ habit, day, value, streak = 0, missedYesterda
   }, [done]);
 
   const set = (v: number) => !locked && setHabitValue(habit, day, Math.max(0, Math.round(v * 10) / 10));
+  const add = (d: number) => !locked && addHabitValue(habit, day, d);
   const xp = RULES.xp[habit.difficulty];
   const cat = CATEGORIES[habit.category];
 
   const onMain = () => {
     if (habit.kind === 'check') set(done ? 0 : 1);
-    else if (habit.kind === 'count') set(value + 1);
+    else if (habit.kind === 'count') add(1);
     else set(done ? 0 : habit.target);
   };
 
@@ -72,12 +73,12 @@ export default function HabitRow({ habit, day, value, streak = 0, missedYesterda
       </button>
 
       {!locked && habit.kind === 'count' && value > 0 && (
-        <button type="button" onClick={() => set(value - 1)} className="h-9 w-9 shrink-0 rounded-full bg-night-700 text-lg text-zinc-300" aria-label="One less">
+        <button type="button" onClick={() => add(-1)} className="h-9 w-9 shrink-0 rounded-full bg-night-700 text-lg text-zinc-300" aria-label="One less">
           −
         </button>
       )}
       {!locked && habit.kind === 'duration' && !done && (
-        <button type="button" onClick={() => set(value + 5)} className="h-9 shrink-0 rounded-full bg-night-700 px-3 text-sm font-semibold text-zinc-200" aria-label="Add 5 minutes">
+        <button type="button" onClick={() => add(5)} className="h-9 shrink-0 rounded-full bg-night-700 px-3 text-sm font-semibold text-zinc-200" aria-label="Add 5 minutes">
           +5
         </button>
       )}

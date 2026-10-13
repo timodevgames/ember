@@ -55,19 +55,36 @@ export function offToFood(p: OffProduct): OffFood | null {
 
 export type LookupResult = { status: 'found'; food: OffFood } | { status: 'incomplete'; name?: string } | { status: 'notFound' } | { status: 'error'; message: string };
 
-export async function lookupBarcode(code: string, signal?: AbortSignal): Promise<LookupResult> {
+/**
+ * With sync connected the Pixel server answers first (proper User-Agent, shared
+ * 30-day cache); if it's unreachable we ask Open Food Facts directly.
+ */
+export async function lookupBarcode(code: string, signal?: AbortSignal, proxy?: { url: string; token: string } | null): Promise<LookupResult> {
+  if (proxy) {
+    try {
+      const r = await fetch(`${proxy.url}/off/product`, { method: 'POST', headers: { 'content-type': 'text/plain' }, body: JSON.stringify({ token: proxy.token, barcode: code }), signal });
+      const j = (await r.json()) as { ok?: boolean; status?: number; product?: { status?: string; product?: OffProduct } | null };
+      if (j.ok && j.product) return interpret(code, j.product);
+      if (j.ok && j.status === 404) return { status: 'notFound' };
+    } catch (e) {
+      if ((e as Error).name === 'AbortError') throw e;
+    }
+  }
   try {
     const r = await fetch(`${BASE}/${encodeURIComponent(code)}?fields=${FIELDS}`, { signal });
     if (r.status === 404) return { status: 'notFound' };
-    const d = (await r.json()) as { status?: string; product?: OffProduct };
-    if (d.status !== 'success' || !d.product) return { status: 'notFound' };
-    const food = offToFood({ ...d.product, code: d.product.code ?? code });
-    if (!food) return { status: 'incomplete', name: d.product.product_name_de || d.product.product_name };
-    return { status: 'found', food };
+    return interpret(code, (await r.json()) as { status?: string; product?: OffProduct });
   } catch (e) {
     if ((e as Error).name === 'AbortError') throw e;
     return { status: 'error', message: navigator.onLine ? 'Open Food Facts is not reachable right now.' : 'You are offline.' };
   }
+}
+
+function interpret(code: string, d: { status?: string; product?: OffProduct }): LookupResult {
+  if (d.status !== 'success' || !d.product) return { status: 'notFound' };
+  const food = offToFood({ ...d.product, code: d.product.code ?? code });
+  if (!food) return { status: 'incomplete', name: d.product.product_name_de || d.product.product_name };
+  return { status: 'found', food };
 }
 
 export async function searchOff(query: string, signal?: AbortSignal): Promise<OffFood[]> {

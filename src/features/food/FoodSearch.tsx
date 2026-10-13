@@ -5,6 +5,7 @@ import { proteinDensity, type FoodItem } from '../../core/nutrition/foods';
 import { searchFoods } from '../../core/nutrition/search';
 import { lookupBarcode, searchOff } from '../../core/nutrition/off';
 import { cacheOffFood } from '../../state/food';
+import { getSyncConfig } from '../../state/sync';
 import { foodToItem } from '../../core/nutrition/foods';
 import { useFoodIndex } from './useFoodIndex';
 import BarcodeScanner from './BarcodeScanner';
@@ -70,7 +71,7 @@ export default function FoodSearch({ onPick, returnTo, allowRecipes = true }: Pr
         onPick(foodToItem(local));
         return;
       }
-      const r = await lookupBarcode(code);
+      const r = await lookupBarcode(code, undefined, await getSyncConfig());
       if (r.status === 'found') {
         const saved = await cacheOffFood(r.food);
         setStatus(null);
